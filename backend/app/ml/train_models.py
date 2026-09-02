@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_PATH = ROOT / "data" / "synthetic" / "crime_reports_multilingual.csv"
 MODELS_DIR = Path(__file__).resolve().parent / "models"
 MODELS_DIR.mkdir(exist_ok=True)
+RESULTS_DIR = ROOT / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
 
 
 def train():
@@ -65,7 +67,7 @@ def train():
     }
     print("Training complete:", metrics)
     import json
-    (MODELS_DIR / "metrics.json").write_text(json.dumps(metrics, indent=2))
+    (RESULTS_DIR / "baseline_metrics.json").write_text(json.dumps(metrics, indent=2))
     return metrics
 
 

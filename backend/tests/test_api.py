@@ -59,3 +59,38 @@ def test_crime_trends():
     r = client.get("/api/crime-analysis/trends")
     assert r.status_code == 200
     assert "by_crime_type" in r.json()
+
+
+def test_sentiment_analyze():
+    r = client.post("/api/sentiment/analyze", json={
+        "text": "I think I'm being followed near Andheri, I'm really scared, please help me.",
+        "use_llm": False,
+    })
+    assert r.status_code == 200
+    body = r.json()
+    assert body["baseline"]["tone"] in {"deceptive", "threatening", "neutral", "distressed"}
+    assert body["llm"] is None
+
+
+def test_behavior_profiles_list():
+    r = client.get("/api/behavior/profiles")
+    assert r.status_code == 200
+    profiles = r.json()
+    assert len(profiles) > 0
+    assert "mo_consistency" in profiles[0]
+    assert "escalating" in profiles[0]
+
+
+def test_behavior_profile_detail():
+    profiles = client.get("/api/behavior/profiles").json()
+    suspect_id = profiles[0]["suspect_id"]
+    r = client.get(f"/api/behavior/profiles/{suspect_id}")
+    assert r.status_code == 200
+    detail = r.json()
+    assert detail["suspect_id"] == suspect_id
+    assert len(detail["incidents"]) == detail["incident_count"]
+
+
+def test_behavior_profile_not_found():
+    r = client.get("/api/behavior/profiles/SUSP-9999")
+    assert r.status_code == 404

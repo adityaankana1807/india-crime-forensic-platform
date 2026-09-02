@@ -21,4 +21,11 @@ export const getHotspots = (epsKm = 5, minSamples = 10) =>
   api.get("/crime-analysis/hotspots", { params: { eps_km: epsKm, min_samples: minSamples } }).then((r) => r.data);
 export const getTrends = () => api.get("/crime-analysis/trends").then((r) => r.data);
 
+export const analyzeSentiment = (text, useLlm = true) =>
+  api.post("/sentiment/analyze", { text, use_llm: useLlm }).then((r) => r.data);
+
+export const getBehaviorProfiles = () => api.get("/behavior/profiles").then((r) => r.data);
+export const getBehaviorProfile = (suspectId) => api.get(`/behavior/profiles/${encodeURIComponent(suspectId)}`).then((r) => r.data);
+export const getBehaviorNarrative = (suspectId) => api.post(`/behavior/profiles/${encodeURIComponent(suspectId)}/narrative`).then((r) => r.data);
+
 export default api;

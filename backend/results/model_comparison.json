@@ -1,0 +1,77 @@
+{
+  "tfidf_svm_baseline": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "per_language": {
+      "bn": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 39
+      },
+      "en": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 47
+      },
+      "hi": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 27
+      },
+      "mr": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 46
+      },
+      "ta": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 38
+      },
+      "te": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 43
+      }
+    }
+  },
+  "distilbert_multilingual": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "per_language": {
+      "bn": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 39
+      },
+      "en": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 47
+      },
+      "hi": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 27
+      },
+      "mr": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 46
+      },
+      "ta": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 38
+      },
+      "te": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "n": 43
+      }
+    }
+  },
+  "claude_zero_shot": {
+    "status": "skipped — ANTHROPIC_API_KEY not set"
+  }
+}

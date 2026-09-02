@@ -18,11 +18,14 @@ class NlpAnalyzeResponse(BaseModel):
     threat_level: str
     threat_level_confidence: float
     keyword_flags: list[str]
+    transformer_crime_type: Optional[str] = None
+    transformer_confidence: Optional[float] = None
 
 
 class ForensicAnalyzeRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=20000)
     source: Optional[str] = "unspecified"
+    use_llm: bool = False
 
 
 class ForensicEntities(BaseModel):
@@ -40,6 +43,16 @@ class ForensicAnalyzeResponse(BaseModel):
     risk_keywords: list[str]
     risk_score: int
     risk_level: str
+    llm_extraction: Optional[dict] = None
+
+
+class SentimentAnalyzeRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=10000)
+    use_llm: bool = True
+
+
+class BehavioralNarrativeRequest(BaseModel):
+    suspect_id: str
 
 
 class DatasetInfo(BaseModel):

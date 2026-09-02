@@ -64,7 +64,10 @@ export default function NlpAnalysis() {
         <div className="card">
           <h2>Result</h2>
           <div className="kv"><span className="k">Detected language</span><span>{result.detected_language_name} ({result.detected_language}) · {(result.language_confidence * 100).toFixed(1)}%</span></div>
-          <div className="kv"><span className="k">Crime type</span><span>{result.crime_type}</span></div>
+          <div className="kv"><span className="k">Crime type (TF-IDF baseline)</span><span>{result.crime_type}</span></div>
+          {result.transformer_crime_type && (
+            <div className="kv"><span className="k">Crime type (transformer)</span><span>{result.transformer_crime_type} ({(result.transformer_confidence * 100).toFixed(1)}% conf.)</span></div>
+          )}
           <div className="kv"><span className="k">Threat level</span><span><span className={`badge badge-${result.threat_level}`}>{result.threat_level}</span> ({(result.threat_level_confidence * 100).toFixed(1)}% conf.)</span></div>
           {result.translated_text && (
             <div className="kv"><span className="k">Translated text</span><span>{result.translated_text}</span></div>

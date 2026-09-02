@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.schemas import NlpAnalyzeRequest, NlpAnalyzeResponse
-from app.services import classification_service, forensic_service, language_service
+from app.services import classification_service, forensic_service, language_service, transformer_service
 
 router = APIRouter(prefix="/api/nlp", tags=["nlp"])
 
@@ -17,6 +17,13 @@ def analyze(payload: NlpAnalyzeRequest):
     clf = classification_service.classify(payload.text)
     keyword_flags = forensic_service.find_risk_keywords(payload.text)
 
+    transformer_crime_type = None
+    transformer_confidence = None
+    if transformer_service.is_available():
+        t_result = transformer_service.classify(payload.text)
+        transformer_crime_type = t_result["crime_type"]
+        transformer_confidence = t_result["confidence"]
+
     return NlpAnalyzeResponse(
         text=payload.text,
         detected_language=lang_code,
@@ -27,4 +34,6 @@ def analyze(payload: NlpAnalyzeRequest):
         threat_level=clf["threat_level"],
         threat_level_confidence=clf["threat_level_confidence"],
         keyword_flags=keyword_flags,
+        transformer_crime_type=transformer_crime_type,
+        transformer_confidence=transformer_confidence,
     )

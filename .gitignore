@@ -6,7 +6,11 @@ __pycache__/
 
 # Trained model artifacts (regenerated via train_models.py / Docker build)
 backend/app/ml/models/*.joblib
-backend/app/ml/models/metrics.json
+backend/app/ml/models/*.json
+backend/app/ml/models/transformer/
+
+# Secrets
+backend/.env
 
 # User-uploaded datasets
 backend/data/uploads/*

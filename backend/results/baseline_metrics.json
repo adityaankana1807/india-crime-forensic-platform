@@ -1,0 +1,8 @@
+{
+  "crime_type_accuracy": 1.0,
+  "crime_type_macro_f1": 1.0,
+  "threat_level_accuracy": 0.9292,
+  "threat_level_macro_f1": 0.7917,
+  "train_size": 960,
+  "test_size": 240
+}

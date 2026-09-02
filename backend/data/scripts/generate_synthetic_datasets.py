@@ -177,6 +177,21 @@ THREAT_BY_TYPE = {
 
 CRIME_TYPES = list(TEMPLATES.keys())
 
+THREAT_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+
+# Behavioural / modus-operandi clusters used to link repeat-offender incident
+# sequences: a suspect's incidents are drawn from one cluster so crime-type
+# choice stays consistent (MO), while severity is allowed to drift upward
+# over time (escalation) — the basis for the platform's behaviour-analysis module.
+MO_CLUSTERS = {
+    "property": ["theft", "burglary", "robbery", "dacoity"],
+    "violent": ["robbery", "dacoity", "kidnapping", "murder"],
+    "financial": ["cybercrime", "cheating_fraud", "extortion"],
+    "narcotics": ["drug_trafficking"],
+    "public_order": ["rioting"],
+    "women_safety": ["crime_against_women"],
+}
+
 
 def random_name(lang: str, fkr: Faker) -> str:
     if lang == "mr":
@@ -186,61 +201,131 @@ def random_name(lang: str, fkr: Faker) -> str:
     return fkr.name()
 
 
-def gen_crime_reports(n=1200):
+def _closest_crime_type(cluster_types, target_ord):
+    return min(cluster_types, key=lambda ct: abs(THREAT_ORDER[THREAT_BY_TYPE[ct]] - target_ord))
+
+
+def _make_report_row(row_id, lang, crime_type, name, loc, date, suspect_id, mo_cluster, incident_index):
+    fkr = FAKERS[lang]
+    weapon = random.choice(WEAPONS[lang])
+    item = random.choice(ITEMS[lang])
+    text = TEMPLATES[crime_type][lang].format(name=name, loc=loc, weapon=weapon, item=item)
+    return {
+        "id": row_id,
+        "language": lang,
+        "text": text,
+        "crime_type": crime_type,
+        "threat_level": THREAT_BY_TYPE[crime_type],
+        "location": loc,
+        "date": date.isoformat(),
+        "suspect_id": suspect_id,
+        "mo_cluster": mo_cluster,
+        "incident_index": incident_index,
+    }
+
+
+def gen_repeat_offender_sequences(num_suspects, start_id):
+    """Generates linked multi-incident sequences per suspect with a consistent
+    MO (crime-type cluster) and a mild escalation trend in severity over time —
+    used by the behaviour-analysis module to detect MO consistency and
+    escalating risk trajectories."""
     rows = []
     start = datetime(2024, 1, 1)
-    for i in range(n):
+    row_id = start_id
+    for s in range(num_suspects):
+        suspect_id = f"SUSP-{s+1:04d}"
+        lang = random.choice(LANGS)
+        fkr = FAKERS[lang]
+        name = random_name(lang, fkr)
+        mo_cluster = random.choice(list(MO_CLUSTERS))
+        cluster_types = MO_CLUSTERS[mo_cluster]
+        home_city = random.choice(INDIAN_CITIES)
+        other_cities = random.sample([c for c in INDIAN_CITIES if c != home_city], k=2)
+
+        num_incidents = random.randint(3, 6)
+        base_date = start + timedelta(days=random.randint(0, 500))
+        severity = random.choice([0, 1])  # start low/medium, escalate over time
+        cur_date = base_date
+
+        for j in range(num_incidents):
+            severity = min(3, severity + random.choice([0, 0, 1]))
+            crime_type = _closest_crime_type(cluster_types, severity)
+            loc = home_city if random.random() < 0.7 else random.choice(other_cities)
+            rows.append(_make_report_row(
+                f"SYN-{row_id:05d}", lang, crime_type, name, loc, cur_date,
+                suspect_id, mo_cluster, j + 1,
+            ))
+            row_id += 1
+            cur_date += timedelta(days=random.randint(7, 60))
+    return rows, row_id
+
+
+def gen_standalone_reports(n, start_id):
+    rows = []
+    start = datetime(2024, 1, 1)
+    row_id = start_id
+    for _ in range(n):
         lang = random.choice(LANGS)
         crime_type = random.choice(CRIME_TYPES)
         fkr = FAKERS[lang]
         name = random_name(lang, fkr)
         loc = random.choice(INDIAN_CITIES)
-        weapon = random.choice(WEAPONS[lang])
-        item = random.choice(ITEMS[lang])
-        text = TEMPLATES[crime_type][lang].format(name=name, loc=loc, weapon=weapon, item=item)
         date = start + timedelta(days=random.randint(0, 640), hours=random.randint(0, 23))
-        rows.append({
-            "id": f"SYN-{i+1:05d}",
-            "language": lang,
-            "text": text,
-            "crime_type": crime_type,
-            "threat_level": THREAT_BY_TYPE[crime_type],
-            "location": loc,
-            "date": date.isoformat(),
-        })
+        rows.append(_make_report_row(
+            f"SYN-{row_id:05d}", lang, crime_type, name, loc, date, "", "", 0,
+        ))
+        row_id += 1
     return rows
 
+
+def gen_crime_reports(n=1200, repeat_offender_share=0.28):
+    linked_rows, next_id = gen_repeat_offender_sequences(num_suspects=70, start_id=1)
+    standalone_n = max(0, n - len(linked_rows))
+    standalone_rows = gen_standalone_reports(standalone_n, next_id)
+    rows = linked_rows + standalone_rows
+    random.shuffle(rows)
+    return rows
+
+
+# Template index -> emotional_tone label, shared across languages (see TONE_LABELS).
+TONE_LABELS = ["deceptive", "threatening", "neutral", "distressed"]
 
 FORENSIC_SNIPPET_TEMPLATES = {
     "en": [
         "User contacted {name} at {email} regarding the shipment, transfer {item} to the account before {date}.",
         "Chat log: 'meet me near {loc} at 11pm, bring {weapon}, don't tell anyone.'",
         "Email header shows origin IP {ip}, forwarded to {email} on {date}.",
+        "Message from {name}: 'I think I'm being followed near {loc}, I'm really scared, please help me.'",
     ],
     "hi": [
         "उपयोगकर्ता ने {email} पर {name} से शिपमेंट के बारे में संपर्क किया, {date} से पहले खाते में {item} भेजें।",
         "चैट लॉग: '{loc} के पास रात 11 बजे मिलो, {weapon} लाना, किसी को मत बताना।'",
         "ईमेल हेडर मूल आईपी {ip} दिखाता है, {date} को {email} पर अग्रेषित किया गया।",
+        "{name} का संदेश: 'मुझे लगता है {loc} के पास कोई मेरा पीछा कर रहा है, मैं बहुत डरी हुई हूँ, कृपया मदद करें।'",
     ],
     "bn": [
         "ব্যবহারকারী চালানের বিষয়ে {email} এ {name} এর সাথে যোগাযোগ করেছেন, {date} এর আগে অ্যাকাউন্টে {item} পাঠান।",
         "চ্যাট লগ: '{loc} এর কাছে রাত ১১টায় দেখা করো, {weapon} নিয়ে এসো, কাউকে বলো না।'",
         "ইমেইল হেডারে মূল আইপি {ip} দেখা যাচ্ছে, {date} তারিখে {email} এ ফরওয়ার্ড করা হয়েছে।",
+        "{name} এর বার্তা: 'আমার মনে হচ্ছে {loc} এর কাছে কেউ আমাকে অনুসরণ করছে, আমি খুব ভয় পাচ্ছি, দয়া করে সাহায্য করুন।'",
     ],
     "mr": [
         "वापरकर्त्याने शिपमेंटबाबत {email} वर {name} शी संपर्क साधला, {date} पूर्वी खात्यात {item} पाठवा.",
         "चॅट लॉग: '{loc} जवळ रात्री ११ वाजता भेट, {weapon} आण, कोणालाही सांगू नकोस.'",
         "ईमेल हेडरमध्ये मूळ आयपी {ip} दिसतो, {date} रोजी {email} वर फॉरवर्ड केले.",
+        "{name} चा संदेश: 'मला वाटतंय {loc} जवळ कोणीतरी माझा पाठलाग करत आहे, मी खूप घाबरले आहे, कृपया मदत करा.'",
     ],
     "ta": [
         "பயனர் {name} உடன் {email} இல் அனுப்புகை குறித்து தொடர்பு கொண்டார், {date} க்கு முன் கணக்கிற்கு {item} அனுப்பவும்.",
         "அரட்டை பதிவு: '{loc} அருகே இரவு 11 மணிக்கு சந்திப்போம், {weapon} கொண்டு வா, யாரிடமும் சொல்லாதே.'",
         "மின்னஞ்சல் தலைப்பு மூல ஐபி {ip} ஐ காட்டுகிறது, {date} அன்று {email} க்கு அனுப்பப்பட்டது.",
+        "{name} இன் செய்தி: '{loc} அருகே யாரோ என்னை பின்தொடர்வதாக நினைக்கிறேன், மிகவும் பயமாக இருக்கிறது, தயவுசெய்து உதவுங்கள்.'",
     ],
     "te": [
         "వినియోగదారు షిప్‌మెంట్ గురించి {email} వద్ద {name}ని సంప్రదించారు, {date} లోపు ఖాతాకు {item} పంపండి.",
         "చాట్ లాగ్: '{loc} దగ్గర రాత్రి 11 గంటలకు కలుద్దాం, {weapon} తీసుకురా, ఎవరికీ చెప్పకు.'",
         "ఇమెయిల్ హెడర్ మూల ఐపీ {ip} చూపిస్తుంది, {date} న {email}కు ఫార్వార్డ్ చేయబడింది.",
+        "{name} నుండి సందేశం: '{loc} దగ్గర ఎవరో నన్ను వెంబడిస్తున్నారని అనిపిస్తోంది, చాలా భయంగా ఉంది, దయచేసి సహాయం చేయండి.'",
     ],
 }
 
@@ -258,7 +343,9 @@ def gen_forensic_evidence(n=500):
         item = random.choice(ITEMS[lang])
         ip = fkr.ipv4()
         date = (start + timedelta(days=random.randint(0, 640))).strftime("%Y-%m-%d")
-        template = random.choice(FORENSIC_SNIPPET_TEMPLATES[lang])
+        template_idx = random.randrange(len(TONE_LABELS))
+        template = FORENSIC_SNIPPET_TEMPLATES[lang][template_idx]
+        tone = TONE_LABELS[template_idx]
         text = template.format(name=name, email=email, loc=loc, weapon=weapon, item=item, ip=ip, date=date)
         evidence_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
         rows.append({
@@ -266,6 +353,7 @@ def gen_forensic_evidence(n=500):
             "language": lang,
             "text": text,
             "source": random.choice(["chat_log", "email", "sms", "call_transcript"]),
+            "emotional_tone": tone,
             "collected_date": date,
             "sha256": evidence_hash,
         })
