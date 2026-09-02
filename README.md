@@ -1,5 +1,9 @@
 # India Crime Behaviour & Digital-Forensic Evidence Analysis Platform
 
+> **Paper-facing console (2026):** the interactive research product — official NCRB metro tables, 32-agency register, paraphrastic Indic corpus, hybrid NLP/DFIR, Grok grounded analysis, and a 10-gap literature register — is **[NyayaLens](https://github.com/adityaankana1807/nyayalens)**.
+>
+> This repository remains the **Python ML lab**: FastAPI, TF-IDF/SVM, DistilBERT, NCRB XLSX/CSV, and the honest finding that template synthetics yield ~99% accuracy and are *not* a benchmark.
+
 An AI-driven, multilingual platform for analysing **criminal behaviour patterns**,
 **sentiment/emotional-tone**, and **digital-forensic evidence** in the Indian
 context. Built on real NCRB (National Crime Records Bureau) statistics plus
@@ -11,7 +15,7 @@ Marathi, Tamil, Telugu).
 - **Criminal behaviour analysis** (core focus) — links synthetic crime reports
   into repeat-offender incident sequences (`suspect_id`/`mo_cluster`) and
   computes modus-operandi consistency, escalation trend, and geographic
-  spread per suspect; an LLM (Claude) generates a qualitative behavioural
+  spread per suspect; an LLM generates a qualitative behavioural
   narrative from the structured incident history.
 - **Sentiment / emotional-tone analysis** (core focus) — classifies evidence
   text (chat logs, messages) into deceptive / threatening / neutral /
@@ -37,7 +41,7 @@ test split (`backend/app/ml/evaluate_models.py`):
 |---|---|
 | TF-IDF + LinearSVC | Character n-gram baseline, `train_models.py` |
 | DistilBERT-multilingual (fine-tuned) | Transformer, `train_transformer.py` |
-| Claude (zero-shot) | No fine-tuning, prompted classification |
+| LLM zero-shot | No fine-tuning, prompted classification |
 
 Results land in `backend/results/`: `model_comparison.json`,
 `baseline_metrics.json`, `transformer_metrics.json`, `sentiment_metrics.json`,
@@ -54,22 +58,7 @@ dataset good for demonstrating a working end-to-end multilingual pipeline,
 but **not** a meaningful benchmark for comparing model capability — a fairer
 comparison needs either (a) real, human-written crime-report text (harder to
 obtain for India due to privacy/availability), or (b) a harder synthetic set
-with paraphrastic variation/noise injected per example. The Claude zero-shot
-comparison (once `ANTHROPIC_API_KEY` is set) is the more informative
-comparison point since it has not seen the templates at all.
-
-## LLM setup (Claude)
-
-Sentiment cross-checking, LLM-based entity extraction, and behavioural
-narrative generation require an Anthropic API key:
-```
-cd backend
-cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY=sk-ant-...
-```
-Restart the backend after setting it. Every LLM-backed endpoint degrades
-gracefully (returns `null`/`"LLM not configured"`) if the key is absent, so
-the rest of the platform works without it. Check status: `GET /api/sentiment/llm-status`.
+with paraphrastic variation/noise injected per example (see NyayaLens).
 
 ## Data
 
@@ -80,75 +69,19 @@ the rest of the platform works without it. Check status: `GET /api/sentiment/llm
     city-wise statistics across 53 Indian metropolitan cities, sourced via the
     Open Government Data Platform India mirror (data.opencity.in). Original
     XLSX source files are kept under `ncrb_xlsx/`.
-  - `indian_law_enforcement_agencies.csv` — curated reference dataset of 26 Indian
+  - `indian_law_enforcement_agencies.csv` — curated reference dataset of Indian
     crime-investigation, intelligence, financial-crime, narcotics, forensic-science
     and paramilitary agencies (CBI, NIA, NCRB, ED, NCB, DRI, SFIO, IB, CFSL, etc.)
   - `chicago_crime.csv`, `communities_crime.csv` — real public datasets (Chicago
     open data portal, UCI ML repository) kept for cross-country comparison.
-- `backend/data/synthetic/` — **synthetic, India-themed, regenerated at build time**:
-  - `crime_reports_multilingual.csv` — 1,200 labeled crime-report narratives
-    across 12 IPC/NCRB-aligned crime categories in 6 languages. ~25% are
-    linked into repeat-offender sequences (`suspect_id`, `mo_cluster`,
-    `incident_index` columns) with a mild escalation trend, feeding the
-    behaviour-analysis module.
-  - `forensic_evidence_logs.csv` — 500 synthetic chat/email/SMS evidence
-    snippets, each labeled with an `emotional_tone` (deceptive / threatening
-    / neutral / distressed), feeding the sentiment-analysis module.
-  - `crime_hotspots.csv` — 2,000 synthetic geotagged records clustered around
-    8 major Indian metros, for hotspot-detection demos.
-
-Regenerate synthetic data / retrain all models at any time:
-```
-cd backend
-venv/Scripts/python data/scripts/generate_synthetic_datasets.py
-venv/Scripts/python app/ml/train_models.py
-venv/Scripts/python app/ml/train_sentiment_model.py
-venv/Scripts/python app/ml/train_transformer.py     # ~10-15 min on CPU
-venv/Scripts/python app/ml/evaluate_models.py        # writes backend/results/
-```
+- `backend/data/synthetic/` — **synthetic, India-themed**:
+  - `crime_reports_multilingual.csv` — labeled crime-report narratives
+    across IPC/NCRB-aligned crime categories in multiple languages.
+  - `forensic_evidence_logs.csv` — synthetic chat/email/SMS evidence
+    snippets labeled with emotional tone.
+  - `crime_hotspots.csv` — synthetic geotagged records around major Indian metros.
 
 ## Architecture
 
-- **Backend**: FastAPI + scikit-learn + pandas + transformers/torch (CPU) + Anthropic SDK (Python 3.13)
-- **Frontend**: React + Vite + Recharts
-
-## Running locally
-
-```
-# Backend
-cd backend
-python -m venv venv
-venv/Scripts/pip install "torch>=2.6.0" --index-url https://download.pytorch.org/whl/cpu
-venv/Scripts/pip install -r requirements.txt
-venv/Scripts/python data/scripts/generate_synthetic_datasets.py
-venv/Scripts/python app/ml/train_models.py
-venv/Scripts/python app/ml/train_sentiment_model.py
-venv/Scripts/python app/ml/train_transformer.py   # optional but recommended, ~10-15 min
-venv/Scripts/python -m uvicorn app.main:app --reload --port 8000
-
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev
-```
-Then open http://localhost:5173.
-
-## Running with Docker
-
-```
-docker compose up --build
-```
-- Frontend: http://localhost:8080
-- Backend API: http://localhost:8000
-
-Note: the transformer is *not* fine-tuned automatically in the Docker build
-(too slow for a build step) — run `train_transformer.py` locally first and
-it will be picked up, or the NLP endpoint simply omits the transformer
-comparison fields when the fine-tuned model isn't present.
-
-## Tests
-
-```
-cd backend
-venv/Scripts/python -m pytest tests/ -v
-```
+- **ML lab (this repo)**: FastAPI + scikit-learn + pandas + transformers/torch
+- **Paper console**: [NyayaLens](https://github.com/adityaankana1807/nyayalens)
