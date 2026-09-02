@@ -1,0 +1,26 @@
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Trained model artifacts (regenerated via train_models.py / Docker build)
+backend/app/ml/models/*.joblib
+backend/app/ml/models/metrics.json
+
+# User-uploaded datasets
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
