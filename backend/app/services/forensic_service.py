@@ -27,10 +27,11 @@ def sha256_hash(text: str) -> str:
 
 def extract_entities(text: str) -> dict:
     dates = sorted(set(RE_DATE.findall(text)))
-    phones = sorted(set(RE_PHONE.findall(text)) - set(dates))
+    ip_addresses = sorted(set(RE_IP.findall(text)))
+    phones = sorted(set(RE_PHONE.findall(text)) - set(dates) - set(ip_addresses))
     return {
         "emails": sorted(set(RE_EMAIL.findall(text))),
-        "ip_addresses": sorted(set(RE_IP.findall(text))),
+        "ip_addresses": ip_addresses,
         "phone_numbers": phones,
         "urls": sorted(set(RE_URL.findall(text))),
         "dates": dates,

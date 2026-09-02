@@ -44,6 +44,8 @@ def test_forensics_analyze():
     body = r.json()
     assert "john.doe@example.com" in body["entities"]["emails"]
     assert "192.168.1.5" in body["entities"]["ip_addresses"]
+    assert "192.168.1.5" not in body["entities"]["phone_numbers"]
+    assert "2024-05-01" not in body["entities"]["phone_numbers"]
     assert "gun" in body["risk_keywords"]
     assert body["risk_level"] in {"low", "medium", "high", "critical"}
 
